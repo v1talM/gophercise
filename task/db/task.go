@@ -25,7 +25,7 @@ func Init(dbPath string) error {
 	})
 }
 
-func Create(task string) (int, error) {
+func CreateTask(task string) (int, error) {
 	var id int
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(taskBucket)
@@ -38,6 +38,26 @@ func Create(task string) (int, error) {
 		return -1, err
 	}
 	return id, nil
+}
+
+func AllTasks() ([]Task, error) {
+	var tasks []Task
+	err := db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(taskBucket)
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			task := Task{
+				Key: btoi(k),
+				Value: string(v),
+			}
+			tasks = append(tasks, task)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
 
 func itob(v int) []byte {
