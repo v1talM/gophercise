@@ -12,6 +12,7 @@ import (
 
 func main() {
 	urlFlags := flag.String("url", "http://iwangle.me", "the url you want to get site-map.")
+	maxDepth := flag.Int("depth", 3, "the max number of links deep")
 	flag.Parse()
 	/**
 	   	1. Get the webpage
@@ -21,7 +22,7 @@ func main() {
 		5. find all pages (BFS)
 		6. print out xml
 	 */
-	pages := get(*urlFlags)
+	pages := bfs(*urlFlags, *maxDepth)
 	for _, page := range pages {
 		fmt.Println(page)
 	}
@@ -41,6 +42,31 @@ func get(urlStr string) []string {
 	}
 	base := baseUrl.String()
 	return filter(hrefs(resp.Body, base), withPrefix(base))
+}
+
+func bfs(urlStr string, maxDepth int) []string {
+	seen := make(map[string]struct{})
+	var q map[string]struct{}
+	nq := map[string]struct{}{
+		urlStr: struct{}{},
+	}
+	for i := 0; i <= maxDepth; i++ {
+		q, nq = nq, make(map[string]struct{})
+		for urls, _ := range q {
+			if _, ok := seen[urls]; ok {
+				continue;
+			}
+			seen[urls] = struct{}{}
+			for _, link := range get(urls) {
+				nq[link] = struct{}{}
+			}
+		}
+	}
+	ret := make([]string, 0, len(seen))
+	for urls, _ := range seen {
+		ret = append(ret, urls)
+	}
+	return ret
 }
 
 func hrefs(r io.Reader, base string) []string {
